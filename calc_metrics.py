@@ -155,7 +155,8 @@ def calc_metrics(ctx, network_pkl, metrics, data, mirror, gpus, verbose):
         ctx.fail('Could not look up dataset options; please specify --data')
 
     # Finalize dataset options.
-    args.dataset_kwargs.resolution = args.G.img_resolution
+    args.dataset_kwargs.resolution_h = args.G.img_resolution_h
+    args.dataset_kwargs.resolution_w = args.G.img_resolution_w
     args.dataset_kwargs.use_labels = (args.G.c_dim != 0)
     if mirror is not None:
         args.dataset_kwargs.xflip = mirror

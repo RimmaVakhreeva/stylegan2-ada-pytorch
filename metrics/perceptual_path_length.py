@@ -76,9 +76,11 @@ class PPLSampler(torch.nn.Module):
             img = img[:, :, c*3 : c*7, c*2 : c*6]
 
         # Downsample to 256x256.
-        factor = self.G.img_resolution // 256
-        if factor > 1:
-            img = img.reshape([-1, img.shape[1], img.shape[2] // factor, factor, img.shape[3] // factor, factor]).mean([3, 5])
+        factor_h = self.G.img_resolution_h // 256
+        factor_w = self.G.img_resolution_w // 256
+        if factor_h > 1 or factor_w > 1:
+            img = img.reshape([-1, img.shape[1], img.shape[2] // factor_h, factor_h,
+                               img.shape[3] // factor_w, factor_w]).mean([3, 5])
 
         # Scale dynamic range from [-1,1] to [0,255].
         img = (img + 1) * (255 / 2)

@@ -94,8 +94,8 @@ def generate_style_mix(
         PIL.Image.fromarray(image, 'RGB').save(f'{outdir}/{row_seed}-{col_seed}.png')
 
     print('Saving image grid...')
-    W = G.img_resolution
-    H = G.img_resolution
+    W = G.img_resolution_w
+    H = G.img_resolution_h
     canvas = PIL.Image.new('RGB', (W * (len(col_seeds) + 1), H * (len(row_seeds) + 1)), 'black')
     for row_idx, row_seed in enumerate([0] + row_seeds):
         for col_idx, col_seed in enumerate([0] + col_seeds):

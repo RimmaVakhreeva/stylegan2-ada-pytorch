@@ -109,7 +109,8 @@ def setup_training_loop_kwargs(
     args.data_loader_kwargs = dnnlib.EasyDict(pin_memory=True, num_workers=3, prefetch_factor=2)
     try:
         training_set = dnnlib.util.construct_class_by_name(**args.training_set_kwargs) # subclass of training.dataset.Dataset
-        args.training_set_kwargs.resolution = training_set.resolution # be explicit about resolution
+        # be explicit about resolution
+        args.training_set_kwargs.resolution_h, args.training_set_kwargs.resolution_w = training_set.resolution
         args.training_set_kwargs.use_labels = training_set.has_labels # be explicit about labels
         args.training_set_kwargs.max_size = len(training_set) # be explicit about dataset size
         desc = training_set.name
@@ -166,12 +167,13 @@ def setup_training_loop_kwargs(
     if cfg == 'auto':
         desc += f'{gpus:d}'
         spec.ref_gpus = gpus
-        res = args.training_set_kwargs.resolution
-        spec.mb = max(min(gpus * min(4096 // res, 32), 64), gpus) # keep gpu memory consumption at bay
-        spec.mbstd = min(spec.mb // gpus, 4) # other hyperparams behave more predictably if mbstd group size remains fixed
-        spec.fmaps = 1 if res >= 512 else 0.5
-        spec.lrate = 0.002 if res >= 1024 else 0.0025
-        spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
+        res_h, res_w = args.training_set_kwargs.resolution_h, args.training_set_kwargs.resolution_w
+        mean_res = (res_h + res_w) // 2
+        spec.mb = max(min(gpus * min(4096 // mean_res, 32), 64), gpus)  # keep gpu memory consumption at bay
+        spec.mbstd = min(spec.mb // gpus, 4)  # other hyperparams behave more predictably if mbstd group size remains fixed
+        spec.fmaps = 1 if mean_res >= 512 else 0.5
+        spec.lrate = 0.002 if mean_res >= 1024 else 0.0025
+        spec.gamma = 0.0002 * (res_h * res_h) / spec.mb  # heuristic formula
         spec.ema = spec.mb * 10 / 32
 
     args.G_kwargs = dnnlib.EasyDict(class_name='training.networks.Generator', z_dim=512, w_dim=512, mapping_kwargs=dnnlib.EasyDict(), synthesis_kwargs=dnnlib.EasyDict())
@@ -510,7 +512,8 @@ def main(ctx, outdir, dry_run, **config_kwargs):
     print(f'Training duration:  {args.total_kimg} kimg')
     print(f'Number of GPUs:     {args.num_gpus}')
     print(f'Number of images:   {args.training_set_kwargs.max_size}')
-    print(f'Image resolution:   {args.training_set_kwargs.resolution}')
+    print(f'Image height:   {args.training_set_kwargs.resolution_h}')
+    print(f'Image width:   {args.training_set_kwargs.resolution_w}')
     print(f'Conditional model:  {args.training_set_kwargs.use_labels}')
     print(f'Dataset x-flips:    {args.training_set_kwargs.xflip}')
     print()

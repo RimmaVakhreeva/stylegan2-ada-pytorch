@@ -16,6 +16,7 @@ import PIL.Image
 import numpy as np
 import torch
 import dnnlib
+import wandb
 from torch_utils import misc
 from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
@@ -65,7 +66,7 @@ def setup_snapshot_image_grid(training_set, random_seed=0):
 
 #----------------------------------------------------------------------------
 
-def save_image_grid(img, fname, drange, grid_size):
+def save_image_grid(img, fname, drange, grid_size, wandb_export=True, iterations=0):
     lo, hi = drange
     img = np.asarray(img, dtype=np.float32)
     img = (img - lo) * (255 / (hi - lo))
@@ -79,9 +80,14 @@ def save_image_grid(img, fname, drange, grid_size):
 
     assert C in [1, 3]
     if C == 1:
-        PIL.Image.fromarray(img[:, :, 0], 'L').save(fname)
-    if C == 3:
-        PIL.Image.fromarray(img, 'RGB').save(fname)
+        image = PIL.Image.fromarray(img[:, :, 0], 'L')
+    else:
+        image = PIL.Image.fromarray(img, 'RGB')
+
+    image.save(fname)
+    if wandb_export:
+        wandb.log(dict(image=wandb.Image(fname)), step=iterations)
+
 
 #----------------------------------------------------------------------------
 
@@ -220,11 +226,13 @@ def training_loop(
     if rank == 0:
         print('Exporting sample images...')
         grid_size, images, labels = setup_snapshot_image_grid(training_set=training_set)
-        save_image_grid(images, os.path.join(run_dir, 'reals.png'), drange=[0,255], grid_size=grid_size)
+        save_image_grid(images, os.path.join(run_dir, 'reals.png'), drange=[0,255], grid_size=grid_size,
+                        wandb_export=False)
         grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
         grid_c = torch.from_numpy(labels).to(device).split(batch_gpu)
         images = torch.cat([G_ema(z=z, c=c, noise_mode='const').cpu() for z, c in zip(grid_z, grid_c)]).numpy()
-        save_image_grid(images, os.path.join(run_dir, 'fakes_init.png'), drange=[-1,1], grid_size=grid_size)
+        save_image_grid(images, os.path.join(run_dir, 'fakes_init.png'), drange=[-1,1], grid_size=grid_size,
+                        wandb_export=True, iterations=0)
 
     # Initialize logs.
     if rank == 0:
@@ -347,7 +355,8 @@ def training_loop(
         # Save image snapshot.
         if (rank == 0) and (image_snapshot_ticks is not None) and (done or cur_tick % image_snapshot_ticks == 0):
             images = torch.cat([G_ema(z=z, c=c, noise_mode='const').cpu() for z, c in zip(grid_z, grid_c)]).numpy()
-            save_image_grid(images, os.path.join(run_dir, f'fakes{cur_nimg//1000:06d}.png'), drange=[-1,1], grid_size=grid_size)
+            save_image_grid(images, os.path.join(run_dir, f'fakes{cur_nimg//1000:06d}.png'), drange=[-1,1], grid_size=grid_size,
+                            wandb_export=True, iterations=cur_nimg)
 
         # Save network snapshot.
         snapshot_pkl = None
@@ -375,6 +384,7 @@ def training_loop(
                     dataset_kwargs=training_set_kwargs, num_gpus=num_gpus, rank=rank, device=device)
                 if rank == 0:
                     metric_main.report_metric(result_dict, run_dir=run_dir, snapshot_pkl=snapshot_pkl)
+                    wandb.log(result_dict.results)
                 stats_metrics.update(result_dict.results)
         del snapshot_data # conserve memory
 

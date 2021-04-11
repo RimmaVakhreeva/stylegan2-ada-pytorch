@@ -16,6 +16,7 @@ import json
 import tempfile
 import torch
 import dnnlib
+import wandb
 
 from training import training_loop
 from metrics import metric_main
@@ -486,6 +487,8 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         run_desc, args = setup_training_loop_kwargs(**config_kwargs)
     except UserError as err:
         ctx.fail(err)
+
+    wandb.init(config=args, project='stylegan2_ada')
 
     # Pick output directory.
     prev_run_dirs = []

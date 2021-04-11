@@ -24,6 +24,8 @@ except ImportError:
 class Dataset(torch.utils.data.Dataset):
     def __init__(self,
         name,                   # Name of the dataset.
+        resolution_h,
+        resolution_w,
         raw_shape,              # Shape of the raw image data (NCHW).
         max_size    = None,     # Artificially limit the size of the dataset. None = no limit. Applied before xflip.
         use_labels  = False,    # Enable conditioning labels? False = label dimension is zero.
@@ -31,6 +33,8 @@ class Dataset(torch.utils.data.Dataset):
         random_seed = 0,        # Random seed to use when applying max_size.
     ):
         self._name = name
+        self.resolution_h = resolution_h
+        self.resolution_w = resolution_w
         self._raw_shape = list(raw_shape)
         self._use_labels = use_labels
         self._raw_labels = None

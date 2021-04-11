@@ -365,7 +365,8 @@ def setup_training_loop_kwargs(
 
 def subprocess_fn(rank, args, temp_dir):
     dnnlib.util.Logger(file_name=os.path.join(args.run_dir, 'log.txt'), file_mode='a', should_flush=True)
-    wandb.init(config=args, project='stylegan2_ada')
+    if rank == 0:
+        wandb.init(config=args, project='stylegan2_ada')
 
     # Init torch.distributed.
     if args.num_gpus > 1:

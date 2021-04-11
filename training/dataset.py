@@ -24,9 +24,9 @@ except ImportError:
 class Dataset(torch.utils.data.Dataset):
     def __init__(self,
         name,                   # Name of the dataset.
-        resolution_h,
-        resolution_w,
         raw_shape,              # Shape of the raw image data (NCHW).
+        resolution_h=1024,
+        resolution_w=1024,
         max_size    = None,     # Artificially limit the size of the dataset. None = no limit. Applied before xflip.
         use_labels  = False,    # Enable conditioning labels? False = label dimension is zero.
         xflip       = False,    # Artificially double the size of the dataset via x-flips. Applied after max_size.

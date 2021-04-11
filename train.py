@@ -365,6 +365,7 @@ def setup_training_loop_kwargs(
 
 def subprocess_fn(rank, args, temp_dir):
     dnnlib.util.Logger(file_name=os.path.join(args.run_dir, 'log.txt'), file_mode='a', should_flush=True)
+    wandb.init(config=args, project='stylegan2_ada')
 
     # Init torch.distributed.
     if args.num_gpus > 1:
@@ -489,8 +490,6 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         run_desc, args = setup_training_loop_kwargs(**config_kwargs)
     except UserError as err:
         ctx.fail(err)
-
-    wandb.init(config=args, project='stylegan2_ada')
 
     # Pick output directory.
     prev_run_dirs = []
